@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculadora de Punto de Equilibrio</title>
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+<style>
+  .input-group {
+    margin-bottom: 10px;
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <h1 style="text-align: center;" class="mt-5">Calculadora de Punto de Equilibrio</h1>
+    <form id="calculator">
+      <div class="form-group">
+        <label for="precioVenta">Pv:</label>
+        <div class="input-group">
+          <input type="number" class="form-control" id="precioVenta" required step="0.01">
+          <div class="input-group-append">
+            <span class="input-group-text">€</span>
+          </div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="precioCoste">Pc:</label>
+        <div class="input-group">
+          <input type="number" class="form-control" id="precioCoste" required step="0.01">
+          <div class="input-group-append">
+            <span class="input-group-text">€</span>
+          </div>
+        </div>
+      </div>
+      <div id="costesFijos">
+        <div class="form-group coste-fijo-container">
+          <label for="costeFijo1">Coste Fijo 1:</label>
+          <div class="input-group">
+            <input type="number" class="form-control costeFijo" required step="0.01">
+            <div class="input-group-append">
+              <span class="input-group-text">€</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <button style="text-align: center; display: block;" type="button" class="btn btn-primary mb-3" id="addCosteFijo">Añadir otro Coste Fijo</button>
+      <div class="form-group">
+        <label for="numVentas">¿Número de Ventas?:</label>
+        <input type="number" class="form-control" id="numVentas" step="1">
+      </div>
+    </form>
+    <div id="resultado"></div>
+  </div>
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+  <script>
+    function formatNumber(number) {
+      var formatted = number.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+      if (formatted.indexOf('.') !== -1) {
+        formatted = formatted.replace(/(\.|,)00$/, '');
+      }
+      return formatted.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    }
+
+    function calcular() {
+      var precioVenta = parseFloat(document.getElementById('precioVenta').value);
+      var precioCoste = parseFloat(document.getElementById('precioCoste').value);
+      var costesFijos = Array.from(document.querySelectorAll('.costeFijo')).reduce((acc, input) => acc + parseFloat(input.value), 0);
+      var numVentas = parseInt(document.getElementById('numVentas').value);
+
+      var contribucionMarginal = precioVenta - precioCoste;
+      var puntoEquilibrio = Math.ceil(costesFijos / contribucionMarginal);
+
+      var resultadoElement = document.getElementById('resultado');
+      resultadoElement.innerHTML = '';
+
+      if (!isNaN(puntoEquilibrio)) {
+        resultadoElement.innerHTML += '<p>Para alcanzar el punto de equilibrio, necesitas vender al menos <strong>' + formatNumber(puntoEquilibrio) + '</strong> unidades.</p>';
+        resultadoElement.innerHTML += '<p>Cálculos:</p>';
+        resultadoElement.innerHTML += '<p>Contribución Marginal por Unidad = ' + formatNumber(precioVenta) + ' - ' + formatNumber(precioCoste) + ' = ' + formatNumber(contribucionMarginal) + '€</p>';
+        resultadoElement.innerHTML += '<p>Punto de Equilibrio = ' + formatNumber(costesFijos) + ' / ' + formatNumber(contribucionMarginal) + ' = ' + formatNumber(puntoEquilibrio) + ' unidades</p>';
+        if (!isNaN(numVentas)) {
+          var diferenciaUnidades = numVentas - puntoEquilibrio;
+          var gananciasPerdidas = diferenciaUnidades * contribucionMarginal;
+          resultadoElement.innerHTML += '<p>Si vendes ' + formatNumber(numVentas) + ' unidades, tendrás unas ganancias de <strong>' + formatNumber(gananciasPerdidas) + '€</strong>.</p>';
+          resultadoElement.innerHTML += '<p>Operación:</p>';
+          resultadoElement.innerHTML += '<p>Ganancias (o Pérdidas) = (' + formatNumber(precioVenta) + ' - ' + formatNumber(precioCoste) + ') × (' + formatNumber(numVentas) + ' - ' + formatNumber(puntoEquilibrio) + ') = ' + formatNumber(gananciasPerdidas) + '€</p>';
+        }
+      } else {
+        resultadoElement.innerHTML = '<p>No se puede calcular el punto de equilibrio. Asegúrate de que todos los campos estén llenos correctamente.</p>';
+      }
+    }
+
+    document.getElementById('addCosteFijo').addEventListener('click', function() {
+      var lastCosteFijo = document.querySelector('.coste-fijo-container:last-of-type .costeFijo');
+      if (!lastCosteFijo.value) return;
+      
+      var numInputs = document.querySelectorAll('.costeFijo').length + 1;
+      var newInput = document.createElement('div');
+      newInput.classList.add('form-group', 'coste-fijo-container');
+      newInput.innerHTML = `
+        <label for="costeFijo${numInputs}">Coste Fijo ${numInputs}:</label>
+        <div class="input-group">
+          <input type="number" class="form-control costeFijo" required step="0.01">
+          <div class="input-group-append">
+            <span class="input-group-text">€</span>
+          </div>
+        </div>`;
+      newInput.querySelector('.costeFijo').addEventListener('input', function() {
+        var nextContainer = document.querySelector('.coste-fijo-container:last-of-type');
+        if (!nextContainer.querySelector('.costeFijo').value) {
+          document.getElementById('addCosteFijo').disabled = true;
+        } else {
+          document.getElementById('addCosteFijo').disabled = false;
+        }
+        calcular();
+      });
+      document.getElementById('costesFijos').appendChild(newInput);
+    });
+
+    document.querySelectorAll('.costeFijo').forEach(function(input) {
+      input.addEventListener('input', calcular);
+    });
+
+    document.getElementById('precioVenta').addEventListener('input', calcular);
+    document.getElementById('precioCoste').addEventListener('input', calcular);
+    document.getElementById('numVentas').addEventListener('input', calcular);
+
+    calcular(); // Calcular al cargar la página
+  </script>
+</body>
+</html>
